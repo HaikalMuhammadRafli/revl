@@ -1,0 +1,3 @@
+[submodule "revl-maskedface-recognition"]
+	path = revl-maskedface-recognition
+	url = https://huggingface.co/spaces/haikal-mura/revl-maskedface-recognition
