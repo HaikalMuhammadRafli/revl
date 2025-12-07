@@ -107,6 +107,7 @@ flutter run
 
 **PBL Group 7**
 *   *Haikal Muhammad Rafli*
+*   *Vincentius Leonanda Prabowo*
 *   *[Other Team Members]*
 
 ## 📄 License
