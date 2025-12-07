@@ -8,7 +8,7 @@ import 'package:revl_mobile/screens/recognition_screen.dart';
 class SplashScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const SplashScreen({Key? key, required this.cameras}) : super(key: key);
+  const SplashScreen({super.key, required this.cameras});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
