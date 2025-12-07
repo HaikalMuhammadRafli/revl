@@ -109,6 +109,7 @@ flutter run
 *   *Haikal Muhammad Rafli*
 *   *Vincentius Leonanda Prabowo*
 *   *[Other Team Members]*
+*   *Nahdia Putri Safira*
 
 ## 📄 License
 
