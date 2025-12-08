@@ -110,6 +110,7 @@ flutter run
 *   *Vincentius Leonanda Prabowo*
 *   *[Other Team Members]*
 *   *Nahdia Putri Safira*
+*   *M. Firmansyah*
 
 ## 📄 License
 
