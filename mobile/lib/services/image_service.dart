@@ -35,9 +35,8 @@ class ImageService {
         }
       }
 
-      // 4. Encode to JPG with 80% quality (WhatsApp style)
-      // reduce to 75 if 80 is still too slow
-      return img.encodeJpg(resized, quality: 80);
+      // 4. Encode to JPG with 95% quality (minimal compression for consistency)
+      return img.encodeJpg(resized, quality: 95);
     } catch (e) {
       debugPrint('Image processing error: $e');
       return [];

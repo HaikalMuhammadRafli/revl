@@ -6,7 +6,6 @@ import 'package:revl_mobile/models/recognition_result_model.dart';
 import 'package:revl_mobile/services/api_service.dart';
 import 'package:revl_mobile/widgets/result_card.dart';
 import 'package:revl_mobile/widgets/stats_card.dart';
-import 'package:revl_mobile/widgets/detection_overlay_painter.dart';
 
 class RecognitionScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
@@ -24,6 +23,12 @@ class _RecognitionScreenState extends State<RecognitionScreen>
 
   bool _isProcessing = false;
   RecognitionResult? _lastResult;
+  int _selectedCameraIndex = 0;  // 0 = rear, 1 = front
+  
+  // Detailed performance metrics
+  int _captureTime = 0;
+  int _apiCallTime = 0;
+  int _totalTime = 0;
 
   // Stats
   int _frameCount = 0;
@@ -56,8 +61,13 @@ class _RecognitionScreenState extends State<RecognitionScreen>
   Future<void> _initializeCamera() async {
     if (widget.cameras.isEmpty) return;
 
+    // Select camera based on current index
+    final cameraIndex = _selectedCameraIndex < widget.cameras.length 
+        ? _selectedCameraIndex 
+        : 0;
+
     _cameraController = CameraController(
-      widget.cameras[0],
+      widget.cameras[cameraIndex],
       ResolutionPreset.high,  // High resolution for better quality
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.jpeg,
@@ -74,11 +84,25 @@ class _RecognitionScreenState extends State<RecognitionScreen>
     }
   }
 
+  Future<void> _switchCamera() async {
+    // Stop current capture
+    _stopCapture();
+    await _cameraController?.dispose();
+
+    // Toggle camera index
+    setState(() {
+      _selectedCameraIndex = (_selectedCameraIndex + 1) % widget.cameras.length;
+    });
+
+    // Reinitialize with new camera
+    await _initializeCamera();
+  }
+
   void _startCapture() {
     _captureTimer?.cancel(); // Ensure no duplicates
-    // Capture every 300ms for faster detection
+    // Capture every 500ms - balanced for backend processing time
     _captureTimer = Timer.periodic(
-      const Duration(milliseconds: 300),
+      const Duration(milliseconds: 500),
       (_) => _captureAndRecognize(),
     );
   }
@@ -91,18 +115,34 @@ class _RecognitionScreenState extends State<RecognitionScreen>
   Future<void> _captureAndRecognize() async {
     if (_isProcessing || _cameraController == null) return;
 
+    final startTime = DateTime.now();
+    
     setState(() {
       _isProcessing = true;
       _frameCount++;
     });
 
     try {
+      // Measure capture time
+      final captureStart = DateTime.now();
       final image = await _cameraController!.takePicture();
-      final result = await ApiService.recognize(image.path);
+      final captureEnd = DateTime.now();
+      final captureTime = captureEnd.difference(captureStart).inMilliseconds;
 
+      // Measure API call time (includes network + backend processing)
+      final apiStart = DateTime.now();
+      final result = await ApiService.recognize(image.path);
+      final apiEnd = DateTime.now();
+      final apiTime = apiEnd.difference(apiStart).inMilliseconds;
+
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+      
       if (mounted) {
         setState(() {
           _lastResult = result;
+          _captureTime = captureTime;
+          _apiCallTime = apiTime;
+          _totalTime = totalTime;
 
           if (result.success) _successCount++;
         });
@@ -138,18 +178,6 @@ class _RecognitionScreenState extends State<RecognitionScreen>
           // Camera Preview
           Center(child: CameraPreview(_cameraController!)),
 
-          // Detection Overlay (bounding boxes and eye ROI)
-          if (_lastResult != null)
-            Center(
-              child: CustomPaint(
-                painter: DetectionOverlayPainter(
-                  result: _lastResult,
-                  imageSize: _cameraController!.value.previewSize!,
-                ),
-                size: Size.infinite,
-              ),
-            ),
-
           // Recognition Result Overlay
           Positioned(
             top: 50,
@@ -158,13 +186,16 @@ class _RecognitionScreenState extends State<RecognitionScreen>
             child: ResultCard(result: _lastResult),
           ),
 
-          // Stats
+          // Combined Stats & Performance Metrics
           Positioned(
             bottom: 20,
             left: 16,
             child: StatsCard(
               frameCount: _frameCount,
               successCount: _successCount,
+              captureTime: _captureTime,
+              apiCallTime: _apiCallTime,
+              totalTime: _totalTime,
             ),
           ),
 
@@ -191,6 +222,19 @@ class _RecognitionScreenState extends State<RecognitionScreen>
             ),
         ],
       ),
+      // Camera Switch Button
+      floatingActionButton: widget.cameras.length > 1
+          ? FloatingActionButton(
+              onPressed: _switchCamera,
+              backgroundColor: Colors.white,
+              child: const Icon(
+                Icons.flip_camera_android,
+                color: Colors.black,
+                size: 28,
+              ),
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
